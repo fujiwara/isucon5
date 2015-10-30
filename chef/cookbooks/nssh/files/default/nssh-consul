@@ -1,0 +1,4 @@
+#!/bin/bash
+
+regex="$1"
+exec /usr/local/bin/nssh $(consul members -status alive | awk "/$regex/{print \"-t\", \$1}") "${@:2:$#}"
