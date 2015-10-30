@@ -13,6 +13,7 @@
     "recipe[wrk]",
     "recipe[http_load]",
     "recipe[nopaste-slack]",
-    "recipe[alp]"
+    "recipe[alp]",
+    "recipe[nssh]"
   ]
 }
