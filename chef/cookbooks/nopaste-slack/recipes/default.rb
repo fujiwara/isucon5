@@ -9,7 +9,7 @@
 
 bash "download nopaste-slack" do
   cwd "/tmp"
-  code "gsutil cp gs://isucon5-fujiwaragumi/nopaste-slack /usr/local/bin/nopaste-slack"
+  code "curl -O /usr/local/bin/nopaste-slack https://storage.googleapis.com/isucon5-fujiwaragumi/nopaste-slack"
   not_if "test -e /usr/local/bin/nopaste-slack"
 end
 
