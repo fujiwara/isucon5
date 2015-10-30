@@ -14,6 +14,7 @@
     "recipe[http_load]",
     "recipe[nopaste-slack]",
     "recipe[alp]",
-    "recipe[nssh]"
+    "recipe[nssh]",
+    "recipe[stretcher]"
   ]
 }
