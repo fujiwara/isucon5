@@ -15,7 +15,7 @@ curl -sLO https://github.com/tkuchiki/alp/releases/download/v0.1.0/alp_linux_amd
 unzip alp_linux_amd64.zip
 install alp_linux_amd64 /usr/local/bin/alp
 END
-  not_if "/usr/local/bin/alp --version | fgrep 0.1.0"
+  not_if "/usr/local/bin/alp --version 2>&1 | fgrep 0.1.0"
 end
 
 file "/usr/local/bin/alp" do
