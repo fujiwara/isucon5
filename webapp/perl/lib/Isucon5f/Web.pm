@@ -7,7 +7,6 @@ use utf8;
 use Kossy;
 use Cache::Memcached::Fast;
 use DBIx::Sunny;
-use JSON;
 use JSON::XS ();
 use Furl;
 use URI;
@@ -100,11 +99,19 @@ sub memd {
 }
 
 sub json {
-    state $json = do {
-        my $j = JSON::XS->new->utf8;
-        $j->canonical(1);
-        $j;
-    };
+    state $json = JSON::XS->new->utf8;
+}
+
+sub _raw_json {
+    state $json = JSON::XS->new;
+}
+
+sub to_json {
+    _raw_json->encode(shift);
+}
+
+sub from_json {
+    _raw_json->decode(shift);
 }
 
 my ($SELF, $C);
@@ -345,7 +352,12 @@ get '/data' => [qw(set_global)] => sub {
 
 sub _build_key {
     my ($uri, $params, $headers, $cache_time) = @_;
-    return json->encode([$uri, $params, $headers, $cache_time]);
+    state $json = do {
+        my $j = JSON::XS->new->utf8;
+        $j->canonical(1);
+        $j;
+    };
+    return $json->encode([$uri, $params, $headers, $cache_time]);
 }
 
 get '/initialize' => sub {
