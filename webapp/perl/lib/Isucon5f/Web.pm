@@ -267,7 +267,7 @@ sub fetch_api {
         url => $uri,
         headers => [%$headers],
     );
-    return decode_json($res->content);
+    return $res->content;
 }
 
 get '/data' => [qw(set_global)] => sub {
@@ -281,7 +281,8 @@ get '/data' => [qw(set_global)] => sub {
     my $data = [];
 
     while (my ($service, $conf) = each(%$arg)) {
-        my $row = db->select_row("SELECT meth, token_type, token_key, uri FROM endpoints WHERE service=?", $service);
+        my $row = $endpoints{$service};
+
         my $method = $row->{meth};
         my $token_type = $row->{token_type};
         my $token_key = $row->{token_key};
@@ -297,7 +298,16 @@ get '/data' => [qw(set_global)] => sub {
             }
         }
         my $uri = sprintf($uri_template, @{$conf->{keys} || []});
-        push @$data, { service => $service, data => fetch_api($method, $uri, $headers, $params) };
+
+        my $key = encode_json([$uri, $params]);
+        my $d = memd->get($key);
+        unless (defined $d) {
+            $d = fetch_api($method, $uri, $headers, $params);
+            memd->set($key => $d);
+        }
+        $d = decode_json($d);
+
+        push @$data, { service => $service, data => $d, };
     }
 
     $c->res->header('Content-Type', 'application/json');
