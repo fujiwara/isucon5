@@ -10,7 +10,7 @@
 file "/etc/supervisor/conf.d/perl.conf" do
   content <<END
 [program:perl]
-rectory=/home/isucon/webapp/perl
+directory=/home/isucon/webapp/perl
 command=/home/isucon/env.sh carton exec -- start_server --port 8080 -- plackup -s Gazelle -p 8080 --max-workers 10 --max-reqs-per-child=100000 --min-reqs-per-child=100000 app.psgi
 user=isucon
 stdout_logfile=/tmp/isucon.perl.log
