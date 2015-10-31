@@ -5,6 +5,7 @@ use strict;
 use warnings;
 use utf8;
 use Kossy;
+use Cache::Memcached::Fast;
 use DBIx::Sunny;
 use JSON;
 use Furl;
@@ -83,6 +84,10 @@ sub db {
             },
         );
     };
+}
+
+sub memd {
+    state $memd = Cache::Memcached::Fast->new;
 }
 
 my ($SELF, $C);
