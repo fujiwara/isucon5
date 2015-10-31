@@ -295,6 +295,7 @@ sub fetch_api {
         url => $uri,
         headers => [%$headers],
     );
+    return '' unless $res->is_success;
     return $res->content;
 }
 
@@ -342,11 +343,11 @@ get '/data' => [qw(set_global)] => sub {
         my $d = $caches->{$key};
         unless (defined $d) {
             $d = fetch_api('GET', $uri, $headers, $params);
-            if ($time > 0) {
+            if ($time > 0 && $d) {
                 push @sets, [$key, $d, $time];
             }
         }
-        push @$data, { service => $service, data => json->decode($d), };
+        push @$data, { service => $service, data => json->decode($d), } if $d;
     }
     memd->set_multi(@sets) if @sets;
 
