@@ -331,9 +331,15 @@ func GetData(w http.ResponseWriter, r *http.Request) {
 	var arg Arg
 	checkErr(json.Unmarshal([]byte(argJson), &arg))
 
-	wg := sync.WaitGroup{}
+	dataCh := make(chan(Data))
 	data := make([]Data, 0, len(arg))
-	i := 0
+	go func() {
+		for {
+			data = append(data, <-dataCh)
+		}
+	}()
+
+	wg := sync.WaitGroup{}
 	for service, conf := range arg {
 		wg.Add(1)
 		row := db.QueryRow(`SELECT meth, token_type, token_key, uri FROM endpoints WHERE service=$1`, service)
@@ -366,11 +372,10 @@ func GetData(w http.ResponseWriter, r *http.Request) {
 		}
 		uri := fmt.Sprintf(*uriTemplate, ks...)
 
-		go func(service, method, uri string, headers, params map[string]string, idx int) {
-			data[i] = Data{service, fetchApi(method, uri, headers, params)}
+		go func(service, method, uri string, headers, params map[string]string) {
+			dataCh <- Data{service, fetchApi(method, uri, headers, params)}
 			wg.Done()
-		}(service, method, uri, headers, params, i)
-		i++
+		}(service, method, uri, headers, params)
 		// data = append(data, Data{service, fetchApi(method, uri, headers, params)})
 	}
 	wg.Wait()
