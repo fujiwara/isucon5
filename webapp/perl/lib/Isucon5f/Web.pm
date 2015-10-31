@@ -5,6 +5,7 @@ use strict;
 use warnings;
 use utf8;
 use Kossy;
+use Cache::Memcached::Fast;
 use DBIx::Sunny;
 use JSON;
 use Furl;
@@ -13,6 +14,58 @@ use IO::Socket::SSL qw(SSL_VERIFY_NONE);
 use String::Util qw(trim);
 use File::Basename qw(dirname);
 use File::Spec;
+
+my %endpoints = (
+  'ken2' => {
+            'uri' => 'http://api.five-final.isucon.net:8080/',
+            'service' => 'ken2',
+            'token_type' => undef,
+            'token_key' => undef,
+            'meth' => 'GET'
+          },
+  'perfectsec_attacked' => {
+                           'meth' => 'GET',
+                           'token_type' => 'header',
+                           'token_key' => 'X-PERFECT-SECURITY-TOKEN',
+                           'uri' => 'https://api.five-final.isucon.net:8443/attacked_list',
+                           'service' => 'perfectsec_attacked'
+                         },
+  'givenname' => {
+                 'meth' => 'GET',
+                 'token_type' => undef,
+                 'token_key' => undef,
+                 'service' => 'givenname',
+                 'uri' => 'http://api.five-final.isucon.net:8081/givenname'
+               },
+  'tenki' => {
+             'service' => 'tenki',
+             'uri' => 'http://api.five-final.isucon.net:8988/',
+             'meth' => 'GET',
+             'token_key' => 'zipcode',
+             'token_type' => 'param'
+           },
+  'surname' => {
+               'service' => 'surname',
+               'uri' => 'http://api.five-final.isucon.net:8081/surname',
+               'meth' => 'GET',
+               'token_type' => undef,
+               'token_key' => undef
+             },
+  'perfectsec' => {
+                  'uri' => 'https://api.five-final.isucon.net:8443/tokens',
+                  'service' => 'perfectsec',
+                  'token_key' => 'X-PERFECT-SECURITY-TOKEN',
+                  'token_type' => 'header',
+                  'meth' => 'GET'
+                },
+  'ken' => {
+           'meth' => 'GET',
+           'token_key' => undef,
+           'token_type' => undef,
+           'service' => 'ken',
+           'uri' => 'http://api.five-final.isucon.net:8080/%s'
+         }
+);
 
 sub db {
     state $db ||= do {
@@ -31,6 +84,10 @@ sub db {
             },
         );
     };
+}
+
+sub memd {
+    state $memd = Cache::Memcached::Fast->new;
 }
 
 my ($SELF, $C);
@@ -210,7 +267,7 @@ sub fetch_api {
         url => $uri,
         headers => [%$headers],
     );
-    return decode_json($res->content);
+    return $res->content;
 }
 
 get '/data' => [qw(set_global)] => sub {
@@ -224,7 +281,8 @@ get '/data' => [qw(set_global)] => sub {
     my $data = [];
 
     while (my ($service, $conf) = each(%$arg)) {
-        my $row = db->select_row("SELECT meth, token_type, token_key, uri FROM endpoints WHERE service=?", $service);
+        my $row = $endpoints{$service};
+
         my $method = $row->{meth};
         my $token_type = $row->{token_type};
         my $token_key = $row->{token_key};
@@ -240,7 +298,16 @@ get '/data' => [qw(set_global)] => sub {
             }
         }
         my $uri = sprintf($uri_template, @{$conf->{keys} || []});
-        push @$data, { service => $service, data => fetch_api($method, $uri, $headers, $params) };
+
+        my $key = encode_json([$uri, $params]);
+        my $d = memd->get($key);
+        unless (defined $d) {
+            $d = fetch_api($method, $uri, $headers, $params);
+            memd->set($key => $d);
+        }
+        $d = decode_json($d);
+
+        push @$data, { service => $service, data => $d, };
     }
 
     $c->res->header('Content-Type', 'application/json');
