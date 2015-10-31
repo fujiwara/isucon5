@@ -315,7 +315,8 @@ get '/data' => [qw(set_global)] => sub {
         }
         my $uri = sprintf($uri_template, @{$conf->{keys} || []});
 
-        push @requests, [$service, $uri, $params, $headers, $row->{cache} || 0, _build_key($uri, $params, $headers)];
+        my $cache_time = $row->{cache} || 0;
+        push @requests, [$service, $uri, $params, $headers, $cache_time, _build_key($uri, $params, $headers, $cache_time)];
     }
 
     my @keys = map {
@@ -343,8 +344,8 @@ get '/data' => [qw(set_global)] => sub {
 };
 
 sub _build_key {
-    my ($uri, $params, $headers) = @_;
-    return json->encode([$uri, $params, $headers]);
+    my ($uri, $params, $headers, $cache_time) = @_;
+    return json->encode([$uri, $params, $headers, $cache_time]);
 }
 
 get '/initialize' => sub {
