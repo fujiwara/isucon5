@@ -5,7 +5,7 @@ use strict;
 use warnings;
 use utf8;
 use Kossy;
-use Cache::Memcached::Fast;
+use Redis::Fast;
 use DBIx::Sunny;
 use JSON;
 use Furl;
@@ -91,10 +91,10 @@ sub db {
     };
 }
 
-sub memd {
-    state $memd = do {
-        my $memd_server = $ENV{MEMD_SERVER} || 'isu01a';
-        Cache::Memcached::Fast->new({ servers => ["$memd_server:11211"] });
+sub redis {
+    state $redis = do {
+        my $redis_server = $ENV{REDIS_SERVER} || 'isu01a';
+        Redis::Fast->new(server => "$redis_server:6379");
     };
 }
 
@@ -310,10 +310,10 @@ get '/data' => [qw(set_global)] => sub {
         my $d;
         if (my $sec = $row->{cache}) {
             my $key = encode_json([$uri, $params, $headers]);
-            $d = memd->get($key);
+            $d = redis->get($key);
             unless (defined $d) {
                 $d = fetch_api($method, $uri, $headers, $params);
-                memd->set($key => $d, $sec);
+                redis->setex($key, $sec, $d);
             }
         } else {
             $d = fetch_api($method, $uri, $headers, $params);
