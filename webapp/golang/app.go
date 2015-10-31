@@ -21,6 +21,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 )
 
 var (
@@ -330,8 +331,11 @@ func GetData(w http.ResponseWriter, r *http.Request) {
 	var arg Arg
 	checkErr(json.Unmarshal([]byte(argJson), &arg))
 
+	wg := sync.WaitGroup{}
 	data := make([]Data, 0, len(arg))
+	i := 0
 	for service, conf := range arg {
+		wg.Add(1)
 		row := db.QueryRow(`SELECT meth, token_type, token_key, uri FROM endpoints WHERE service=$1`, service)
 		var method string
 		var tokenType *string
@@ -362,8 +366,14 @@ func GetData(w http.ResponseWriter, r *http.Request) {
 		}
 		uri := fmt.Sprintf(*uriTemplate, ks...)
 
-		data = append(data, Data{service, fetchApi(method, uri, headers, params)})
+		go func(service, method, uri string, headers, params map[string]string, idx int) {
+			data[i] = Data{service, fetchApi(method, uri, headers, params)}
+			wg.Done()
+		}(service, method, uri, headers, params, i)
+		i++
+		// data = append(data, Data{service, fetchApi(method, uri, headers, params)})
 	}
+	wg.Wait()
 
 	w.Header().Set("Content-Type", "application/json")
 	body, err := json.Marshal(data)
