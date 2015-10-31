@@ -14,6 +14,58 @@ use String::Util qw(trim);
 use File::Basename qw(dirname);
 use File::Spec;
 
+my %endpoints = (
+  'ken2' => {
+            'uri' => 'http://api.five-final.isucon.net:8080/',
+            'service' => 'ken2',
+            'token_type' => undef,
+            'token_key' => undef,
+            'meth' => 'GET'
+          },
+  'perfectsec_attacked' => {
+                           'meth' => 'GET',
+                           'token_type' => 'header',
+                           'token_key' => 'X-PERFECT-SECURITY-TOKEN',
+                           'uri' => 'https://api.five-final.isucon.net:8443/attacked_list',
+                           'service' => 'perfectsec_attacked'
+                         },
+  'givenname' => {
+                 'meth' => 'GET',
+                 'token_type' => undef,
+                 'token_key' => undef,
+                 'service' => 'givenname',
+                 'uri' => 'http://api.five-final.isucon.net:8081/givenname'
+               },
+  'tenki' => {
+             'service' => 'tenki',
+             'uri' => 'http://api.five-final.isucon.net:8988/',
+             'meth' => 'GET',
+             'token_key' => 'zipcode',
+             'token_type' => 'param'
+           },
+  'surname' => {
+               'service' => 'surname',
+               'uri' => 'http://api.five-final.isucon.net:8081/surname',
+               'meth' => 'GET',
+               'token_type' => undef,
+               'token_key' => undef
+             },
+  'perfectsec' => {
+                  'uri' => 'https://api.five-final.isucon.net:8443/tokens',
+                  'service' => 'perfectsec',
+                  'token_key' => 'X-PERFECT-SECURITY-TOKEN',
+                  'token_type' => 'header',
+                  'meth' => 'GET'
+                },
+  'ken' => {
+           'meth' => 'GET',
+           'token_key' => undef,
+           'token_type' => undef,
+           'service' => 'ken',
+           'uri' => 'http://api.five-final.isucon.net:8080/%s'
+         }
+);
+
 sub db {
     state $db ||= do {
         my %db = (
