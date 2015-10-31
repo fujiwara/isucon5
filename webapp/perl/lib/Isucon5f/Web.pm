@@ -206,14 +206,23 @@ get '/' => [qw(set_global)] => sub {
     if (!current_user()) {
         return $c->redirect('/login');
     }
-    $c->render('main.tx', { user => current_user() });
+    my $air_isu_refresh_interval = +{
+        micro    => 30000,
+        small    => 30000,
+        standard => 20000,
+        premium  => 10000,
+    }->{current_user()->{grade}};
+
+    $c->render('main.tx', {
+        user                     => current_user(),
+        air_isu_refresh_interval => $air_isu_refresh_interval,
+    });
 };
 
-get '/user.js' => [qw(set_global)] => sub {
+get '/user.js' => sub {
     my ($self, $c) = @_;
-    $c->halt(403) if !current_user();
     $c->res->header('Content-Type', 'application/javascript');
-    $c->render('userjs.tx', { grade => current_user()->{grade} });
+    $c->render('userjs.tx');
 };
 
 get '/modify' => [qw(set_global)] => sub {
