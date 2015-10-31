@@ -55,7 +55,7 @@ my %endpoints = (
         'meth' => 'GET',
         'token_key' => 'zipcode',
         'token_type' => 'param',
-        'cache' => 120,
+        'cache' => 10,
     },
     'perfectsec' => {
         'uri' => 'https://api.five-final.isucon.net:8443/tokens',
