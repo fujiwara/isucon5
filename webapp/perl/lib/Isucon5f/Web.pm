@@ -295,8 +295,7 @@ get '/data' => [qw(set_global)] => sub {
     my $arg_json = db->select_one("SELECT arg FROM subscriptions WHERE user_id=?", $user->{id});
     my $arg = from_json($arg_json);
 
-    my $data = [];
-
+    my @requests;
     while (my ($service, $conf) = each(%$arg)) {
         my $row = $endpoints{$service};
 
@@ -316,25 +315,37 @@ get '/data' => [qw(set_global)] => sub {
         }
         my $uri = sprintf($uri_template, @{$conf->{keys} || []});
 
-        my $d;
-        if (my $sec = $row->{cache}) {
-            my $key = json->encode([$uri, $params, $headers]);
-            $d = memd->get($key);
-            unless (defined $d) {
-                $d = fetch_api($method, $uri, $headers, $params);
-                memd->set($key => $d, $sec);
-            }
-        } else {
-            $d = fetch_api($method, $uri, $headers, $params);
-        }
-        $d = json->decode($d);
-
-        push @$data, { service => $service, data => $d, };
+        push @requests, [$service, $uri, $params, $headers, $row->{cache} || 0, _build_key($uri, $params, $headers)];
     }
+
+    my @keys = map {
+        $_->[5]
+    } grep { $_->[4] } @requests;
+
+    my $caches = memd->get_multi(@keys);
+    my $data = [];
+    my @sets;
+    for my $r (@requests) {
+        my ($service, $uri, $params, $headers, $time, $key) = @$r;
+        my $d = $caches->{$key};
+        unless (defined $d) {
+            $d = fetch_api('GET', $uri, $headers, $params);
+            if ($time > 0) {
+                push @sets, [$key, $d, $time];
+            }
+        }
+        push @$data, { service => $service, data => json->decode($d), };
+    }
+    memd->set_multi(@sets);
 
     $c->res->header('Content-Type', 'application/json');
     $c->res->body(json->encode($data));
 };
+
+sub _build_key {
+    my ($uri, $params, $headers) = @_;
+    return json->encode([$uri, $params, $headers]);
+}
 
 get '/initialize' => sub {
     my ($self, $c) = @_;
