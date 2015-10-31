@@ -60,7 +60,6 @@ my %endpoints = (
         'token_key' => 'X-PERFECT-SECURITY-TOKEN',
         'token_type' => 'header',
         'meth' => 'GET',
-        'cache' => 1,
     },
     'ken' => {
         'meth' => 'GET',
