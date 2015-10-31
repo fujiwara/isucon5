@@ -92,7 +92,10 @@ sub db {
 }
 
 sub memd {
-    state $memd = Cache::Memcached::Fast->new({ servers => ["127.0.0.1:11211"] });
+    state $memd = do {
+        my $memd_server = $ENV{MEMD_SERVER} || 'isu01a';
+        Cache::Memcached::Fast->new({ servers => ["$memd_server:11211"] });
+    };
 }
 
 my ($SELF, $C);
