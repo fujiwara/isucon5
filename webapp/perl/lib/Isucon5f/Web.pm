@@ -202,6 +202,7 @@ SQL
 sub fetch_api {
     my ($method, $uri, $headers, $params) = @_;
     my $client = Furl->new(ssl_opts => { SSL_verify_mode => SSL_VERIFY_NONE });
+    $client->env_proxy;
     $uri = URI->new($uri);
     $uri->query_form(%$params);
     my $res = $client->request(
