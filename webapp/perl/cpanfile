@@ -8,3 +8,4 @@ requires "Furl";
 requires "IO::Socket::SSL";
 requires "String::Util";
 requires "Cache::Memcached::Fast";
+requires "Gazelle";
