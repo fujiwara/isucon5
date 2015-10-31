@@ -13,6 +13,7 @@ use IO::Socket::SSL qw(SSL_VERIFY_NONE);
 use String::Util qw(trim);
 use File::Basename qw(dirname);
 use File::Spec;
+use Cache::Memcached::Fast;
 
 my %endpoints = (
   'ken2' => {
@@ -82,6 +83,16 @@ sub db {
                 AutoInactiveDestroy => 1,
             },
         );
+    };
+}
+
+sub memd {
+    state $memd ||= do {
+        Cache::Memcached::Fast->new({
+            servers => [
+                '127.0.0.1:11211',
+            ],
+        });
     };
 }
 
