@@ -15,6 +15,7 @@
     "recipe[nopaste-slack]",
     "recipe[alp]",
     "recipe[nssh]",
-    "recipe[stretcher]"
+    "recipe[stretcher]",
+    "recipe[supervisord]"
   ]
 }
