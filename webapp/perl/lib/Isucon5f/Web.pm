@@ -336,7 +336,7 @@ get '/data' => [qw(set_global)] => sub {
         }
         push @$data, { service => $service, data => json->decode($d), };
     }
-    memd->set_multi(@sets);
+    memd->set_multi(@sets) if @sets;
 
     $c->res->header('Content-Type', 'application/json');
     $c->res->body(json->encode($data));
