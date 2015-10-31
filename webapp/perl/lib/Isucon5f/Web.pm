@@ -309,7 +309,7 @@ get '/data' => [qw(set_global)] => sub {
 
         my $d;
         if (my $sec = $row->{cache}) {
-            my $key = encode_json([$uri, $params]);
+            my $key = encode_json([$uri, $params, $headers]);
             $d = memd->get($key);
             unless (defined $d) {
                 $d = fetch_api($method, $uri, $headers, $params);
