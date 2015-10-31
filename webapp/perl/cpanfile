@@ -1,7 +1,6 @@
 requires "Kossy", 0.38;
 requires "DBIx::Sunny";
 
-requires "Cache::Memcached::Fast";
 requires "DBD::Pg";
 requires "Starman";
 requires "Plack::Session";
@@ -10,3 +9,4 @@ requires "Gazelle";
 requires "IO::Socket::SSL";
 requires "String::Util";
 requires "Redis::Fast";
+requires 'JSON::XS';

@@ -8,6 +8,7 @@ use Kossy;
 use Redis::Fast;
 use DBIx::Sunny;
 use JSON;
+use JSON::XS ();
 use Furl;
 use URI;
 use IO::Socket::SSL qw(SSL_VERIFY_NONE);
@@ -54,7 +55,7 @@ my %endpoints = (
         'meth' => 'GET',
         'token_key' => 'zipcode',
         'token_type' => 'param',
-        'cache' => 7200,
+        'cache' => 120,
     },
     'perfectsec' => {
         'uri' => 'https://api.five-final.isucon.net:8443/tokens',
@@ -95,6 +96,14 @@ sub redis {
     state $redis = do {
         my $redis_server = $ENV{REDIS_SERVER} || 'isu01a';
         Redis::Fast->new(server => "$redis_server:6379");
+    };
+}
+
+sub json {
+    state $json = do {
+        my $j = JSON::XS->new->utf8;
+        $j->canonical(1);
+        $j;
     };
 }
 
@@ -309,8 +318,9 @@ get '/data' => [qw(set_global)] => sub {
 
         my $d;
         if (my $sec = $row->{cache}) {
-            my $key = encode_json([$uri, $params, $headers]);
+            my $key = json->encode([$uri, $params, $headers]);
             $d = redis->get($key);
+
             unless (defined $d) {
                 $d = fetch_api($method, $uri, $headers, $params);
                 redis->setex($key, $sec, $d);
@@ -318,13 +328,13 @@ get '/data' => [qw(set_global)] => sub {
         } else {
             $d = fetch_api($method, $uri, $headers, $params);
         }
-        $d = decode_json($d);
+        $d = json->decode($d);
 
         push @$data, { service => $service, data => $d, };
     }
 
     $c->res->header('Content-Type', 'application/json');
-    $c->res->body(encode_json($data));
+    $c->res->body(json->encode($data));
 };
 
 get '/initialize' => sub {
