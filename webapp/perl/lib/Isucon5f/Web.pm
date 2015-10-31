@@ -130,7 +130,11 @@ SELECT id, email, grade FROM users WHERE email=? AND passhash=digest(salt || ?, 
 SQL
     my $user = db->select_row($query, $email, $password);
     if ($user) {
-        session->{user_id} = $user->{id};
+        session = +{
+            user_id => $user->{id},
+            grade   => $user->{grade},
+            email   => $user->{email},
+        };
     }
     return $user;
 }
@@ -139,13 +143,13 @@ sub current_user {
     my $user = stash->{user};
     return $user if $user;
     return undef if !session->{user_id};
-    $user = db->select_row('SELECT id,email,grade FROM users WHERE id=?', session->{user_id});
-    if (!$user) {
-        session = +{};
-    } else {
-        stash->{user} = $user;
-    }
-    return $user;
+
+    stash->{user} = {
+        id    => session->{user_id},
+        grade => session->{grade},
+        email => session->{email},
+    };
+    return stash->{user};
 }
 
 my @SALT_CHARS = ('a'..'z', 'A'..'Z', '0'..'9');
