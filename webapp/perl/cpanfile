@@ -9,5 +9,4 @@ requires "Furl";
 requires "Gazelle";
 requires "IO::Socket::SSL";
 requires "String::Util";
-requires "Cache::Memcached::Fast";
 requires "Gazelle";
