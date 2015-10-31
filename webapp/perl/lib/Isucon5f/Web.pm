@@ -16,20 +16,21 @@ use File::Basename qw(dirname);
 use File::Spec;
 
 my %endpoints = (
+    'ken' => {
+        'meth' => 'GET',
+        'token_key' => undef,
+        'token_type' => undef,
+        'service' => 'ken',
+        'uri' => 'http://api.five-final.isucon.net:8080/%s',
+        'cache' => 7200,
+    },
     'ken2' => {
         'uri' => 'http://api.five-final.isucon.net:8080/',
         'service' => 'ken2',
         'token_type' => undef,
         'token_key' => undef,
         'meth' => 'GET',
-        'cache' => 1,
-    },
-    'perfectsec_attacked' => {
-        'meth' => 'GET',
-        'token_type' => 'header',
-        'token_key' => 'X-PERFECT-SECURITY-TOKEN',
-        'uri' => 'https://api.five-final.isucon.net:8443/attacked_list',
-        'service' => 'perfectsec_attacked',
+        'cache' => 7200,
     },
     'givenname' => {
         'meth' => 'GET',
@@ -37,14 +38,7 @@ my %endpoints = (
         'token_key' => undef,
         'service' => 'givenname',
         'uri' => 'http://api.five-final.isucon.net:8081/givenname',
-        'cache' => 1,
-    },
-    'tenki' => {
-        'service' => 'tenki',
-        'uri' => 'http://api.five-final.isucon.net:8988/',
-        'meth' => 'GET',
-        'token_key' => 'zipcode',
-        'token_type' => 'param',
+        'cache' => 7200,
     },
     'surname' => {
         'service' => 'surname',
@@ -52,7 +46,15 @@ my %endpoints = (
         'meth' => 'GET',
         'token_type' => undef,
         'token_key' => undef,
-        'cache' => 1,
+        'cache' => 7200,
+    },
+    'tenki' => {
+        'service' => 'tenki',
+        'uri' => 'http://api.five-final.isucon.net:8988/',
+        'meth' => 'GET',
+        'token_key' => 'zipcode',
+        'token_type' => 'param',
+        'cache' => 7200,
     },
     'perfectsec' => {
         'uri' => 'https://api.five-final.isucon.net:8443/tokens',
@@ -61,13 +63,12 @@ my %endpoints = (
         'token_type' => 'header',
         'meth' => 'GET',
     },
-    'ken' => {
+    'perfectsec_attacked' => {
         'meth' => 'GET',
-        'token_key' => undef,
-        'token_type' => undef,
-        'service' => 'ken',
-        'uri' => 'http://api.five-final.isucon.net:8080/%s',
-        'cache' => 1,
+        'token_type' => 'header',
+        'token_key' => 'X-PERFECT-SECURITY-TOKEN',
+        'uri' => 'https://api.five-final.isucon.net:8443/attacked_list',
+        'service' => 'perfectsec_attacked',
     },
 );
 
@@ -91,7 +92,10 @@ sub db {
 }
 
 sub memd {
-    state $memd = Cache::Memcached::Fast->new({ servers => ["127.0.0.1:11211"] });
+    state $memd = do {
+        my $memd_server = $ENV{MEMD_SERVER} || 'isu01a';
+        Cache::Memcached::Fast->new({ servers => ["$memd_server:11211"] });
+    };
 }
 
 my ($SELF, $C);
@@ -313,12 +317,12 @@ get '/data' => [qw(set_global)] => sub {
         my $uri = sprintf($uri_template, @{$conf->{keys} || []});
 
         my $d;
-        if ($row->{cache}) {
+        if (my $sec = $row->{cache}) {
             my $key = encode_json([$uri, $params]);
             $d = memd->get($key);
             unless (defined $d) {
                 $d = fetch_api($method, $uri, $headers, $params);
-                memd->set($key => $d);
+                memd->set($key => $d, $sec);
             }
         } else {
             $d = fetch_api($method, $uri, $headers, $params);
