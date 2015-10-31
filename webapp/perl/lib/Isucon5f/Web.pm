@@ -16,55 +16,60 @@ use File::Basename qw(dirname);
 use File::Spec;
 
 my %endpoints = (
-  'ken2' => {
-            'uri' => 'http://api.five-final.isucon.net:8080/',
-            'service' => 'ken2',
-            'token_type' => undef,
-            'token_key' => undef,
-            'meth' => 'GET'
-          },
-  'perfectsec_attacked' => {
-                           'meth' => 'GET',
-                           'token_type' => 'header',
-                           'token_key' => 'X-PERFECT-SECURITY-TOKEN',
-                           'uri' => 'https://api.five-final.isucon.net:8443/attacked_list',
-                           'service' => 'perfectsec_attacked'
-                         },
-  'givenname' => {
-                 'meth' => 'GET',
-                 'token_type' => undef,
-                 'token_key' => undef,
-                 'service' => 'givenname',
-                 'uri' => 'http://api.five-final.isucon.net:8081/givenname'
-               },
-  'tenki' => {
-             'service' => 'tenki',
-             'uri' => 'http://api.five-final.isucon.net:8988/',
-             'meth' => 'GET',
-             'token_key' => 'zipcode',
-             'token_type' => 'param'
-           },
-  'surname' => {
-               'service' => 'surname',
-               'uri' => 'http://api.five-final.isucon.net:8081/surname',
-               'meth' => 'GET',
-               'token_type' => undef,
-               'token_key' => undef
-             },
-  'perfectsec' => {
-                  'uri' => 'https://api.five-final.isucon.net:8443/tokens',
-                  'service' => 'perfectsec',
-                  'token_key' => 'X-PERFECT-SECURITY-TOKEN',
-                  'token_type' => 'header',
-                  'meth' => 'GET'
-                },
-  'ken' => {
-           'meth' => 'GET',
-           'token_key' => undef,
-           'token_type' => undef,
-           'service' => 'ken',
-           'uri' => 'http://api.five-final.isucon.net:8080/%s'
-         }
+    'ken2' => {
+        'uri' => 'http://api.five-final.isucon.net:8080/',
+        'service' => 'ken2',
+        'token_type' => undef,
+        'token_key' => undef,
+        'meth' => 'GET',
+        'cache' => 1,
+    },
+    'perfectsec_attacked' => {
+        'meth' => 'GET',
+        'token_type' => 'header',
+        'token_key' => 'X-PERFECT-SECURITY-TOKEN',
+        'uri' => 'https://api.five-final.isucon.net:8443/attacked_list',
+        'service' => 'perfectsec_attacked',
+    },
+    'givenname' => {
+        'meth' => 'GET',
+        'token_type' => undef,
+        'token_key' => undef,
+        'service' => 'givenname',
+        'uri' => 'http://api.five-final.isucon.net:8081/givenname',
+        'cache' => 1,
+    },
+    'tenki' => {
+        'service' => 'tenki',
+        'uri' => 'http://api.five-final.isucon.net:8988/',
+        'meth' => 'GET',
+        'token_key' => 'zipcode',
+        'token_type' => 'param',
+    },
+    'surname' => {
+        'service' => 'surname',
+        'uri' => 'http://api.five-final.isucon.net:8081/surname',
+        'meth' => 'GET',
+        'token_type' => undef,
+        'token_key' => undef,
+        'cache' => 1,
+    },
+    'perfectsec' => {
+        'uri' => 'https://api.five-final.isucon.net:8443/tokens',
+        'service' => 'perfectsec',
+        'token_key' => 'X-PERFECT-SECURITY-TOKEN',
+        'token_type' => 'header',
+        'meth' => 'GET',
+        'cache' => 1,
+    },
+    'ken' => {
+        'meth' => 'GET',
+        'token_key' => undef,
+        'token_type' => undef,
+        'service' => 'ken',
+        'uri' => 'http://api.five-final.isucon.net:8080/%s',
+        'cache' => 1,
+    },
 );
 
 sub db {
@@ -299,11 +304,16 @@ get '/data' => [qw(set_global)] => sub {
         }
         my $uri = sprintf($uri_template, @{$conf->{keys} || []});
 
-        my $key = encode_json([$uri, $params]);
-        my $d = memd->get($key);
-        unless (defined $d) {
+        my $d;
+        if ($row->{cache}) {
+            my $key = encode_json([$uri, $params]);
+            $d = memd->get($key);
+            unless (defined $d) {
+                $d = fetch_api($method, $uri, $headers, $params);
+                memd->set($key => $d);
+            }
+        } else {
             $d = fetch_api($method, $uri, $headers, $params);
-            memd->set($key => $d);
         }
         $d = decode_json($d);
 
