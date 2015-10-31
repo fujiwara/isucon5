@@ -87,7 +87,7 @@ sub db {
 }
 
 sub memd {
-    state $memd = Cache::Memcached::Fast->new;
+    state $memd = Cache::Memcached::Fast->new({ servers => ["127.0.0.1:11211"] });
 }
 
 my ($SELF, $C);
